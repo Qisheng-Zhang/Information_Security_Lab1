@@ -1,0 +1,29 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ---- 虚拟环境 ----
+.venv/
+venv/
+env/
+
+# ---- 运行时 / 临时产物 ----
+# 扩展密钥空间并行破解的临时工作目录
+_crack_*/
+# 临时脚本与调试残留
+_zoom/
+_temp/
+*.tmp
+~$*
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S-DES 算法演示平台 · 信息安全导论 作业1</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="logo">🔐</div>
+    <div class="hero-text">
+      <h1>S-DES 算法实现与加解密演示</h1>
+      <p class="sub">分组 8-bit · 密钥 10-bit · 轮数 2 · 纯 Python 标准库 · 网页版界面</p>
+      <p class="warn">注意: 本作业的 SBox2 与标准 S-DES 的 S1 不同, 因此公开资料的标准测试向量不能作为期望密文。</p>
+    </div>
+    <div class="hero-meta">
+      <span class="chip" id="version-chip">v1.0.0</span>
+      <span class="chip" id="status-chip">就绪</span>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-panel="p1">第 1 关 · 基本测试</button>
+  <button class="tab" data-panel="p2">第 2 关 · 交叉测试</button>
+  <button class="tab" data-panel="p3">第 3 关 · 扩展功能</button>
+  <button class="tab" data-panel="p4">第 4 关 · 暴力破解</button>
+  <button class="tab" data-panel="p5">第 5 关 · 封闭测试</button>
+  <button class="tab" data-panel="p6">算法规格</button>
+</nav>
+
+<main>
+
+<!-- ================= 第 1 关 ================= -->
+<section class="panel active" id="p1">
+  <div class="card">
+    <h2>第 1 关 · 基本测试</h2>
+    <p class="hint">输入 8-bit 明文与 10-bit 密钥, 输出 8-bit 密文。支持 “逐步跟踪” 查看与手算比对的每一步中间状态。</p>
+    <div class="grid2">
+      <label class="field">
+        <span>明文 (8-bit)</span>
+        <input id="l1-pt" class="mono" maxlength="24" value="10010111" autocomplete="off">
+        <small>例如 10010111, 也可粘贴 <b>1001 0111</b> 或 <b>1001_0111</b></small>
+      </label>
+      <label class="field">
+        <span>密钥 (10-bit)</span>
+        <input id="l1-key" class="mono" maxlength="30" value="1010000010" autocomplete="off">
+        <small>例如 1010000010</small>
+      </label>
+    </div>
+    <div class="btn-row">
+      <button class="primary" id="l1-enc">加密 →</button>
+      <button id="l1-dec">← 解密</button>
+      <button id="l1-trace">逐步跟踪</button>
+      <button id="l1-rand">随机明文 / 密钥</button>
+      <button class="ghost" id="l1-clear">清空</button>
+    </div>
+    <div class="result-grid">
+      <div class="result"><span id="l1-out-hex-label">密文 (2-bit hex)</span><b id="l1-ct-hex" class="mono">—</b></div>
+      <div class="result"><span id="l1-out-bits-label">密文 (8-bit)</span><b id="l1-ct" class="mono">—</b></div>
+      <div class="result"><span>子密钥 K1</span><b id="l1-k1" class="mono">—</b></div>
+      <div class="result"><span>子密钥 K2</span><b id="l1-k2" class="mono">—</b></div>
+    </div>
+    <div id="l1-steps" class="steps hidden">
+      <h3>过程明细 / 中间状态</h3>
+      <table class="data-table mono" id="l1-steps-table"></table>
+      <p class="hint">对照公式 C = IP⁻¹( f<sub>K2</sub>( SW( f<sub>K1</sub>( IP(P) ) ) ) )</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 第 2 关 ================= -->
+<section class="panel" id="p2">
+  <div class="card">
+    <h2>第 2 关 · 交叉测试</h2>
+    <p class="hint">本平台与对方的程序使用同一套算法流程与转换单元 (P-Box / S-Box), 因此对相同明文与密钥必须得到相同密文。导出测试向量 CSV, 与对方交换后导入比对即可验证。</p>
+    <div class="grid3">
+      <label class="field"><span>生成条数</span><input id="l2-count" type="number" min="1" max="5000" value="200"></label>
+      <label class="field"><span>密钥 (留空表示随机)</span><input id="l2-key" class="mono" maxlength="30" placeholder="1010000010" autocomplete="off"></label>
+      <label class="field"><span>随机种子 (固定)</span><input id="l2-seed" class="mono" value="20261008" disabled></label>
+    </div>
+    <div class="btn-row">
+      <button class="primary" id="l2-gen">生成测试向量</button>
+      <button id="l2-download">下载 CSV</button>
+      <button id="l2-copy">复制到剪贴板</button>
+      <button class="ghost" id="l2-clear">清空</button>
+    </div>
+    <p class="hint" id="l2-status">尚未生成。</p>
+    <textarea id="l2-csv" class="mono tall" spellcheck="false" placeholder="pt,key,ct&#10;此处显示本机生成的测试向量 …"></textarea>
+    <div class="compare-box">
+      <h3>与对方的测试向量比对</h3>
+      <div class="btn-row">
+        <label class="file-btn">选择对方 CSV 文件…<input type="file" id="l2-file" accept=".csv,.txt"></label>
+        <button class="primary" id="l2-compare">比对</button>
+      </div>
+      <textarea id="l2-remote" class="mono tall" spellcheck="false" placeholder="也可以直接把对方的 CSV 内容粘贴到这里, 再点“比对”"></textarea>
+      <div id="l2-result"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 第 3 关 ================= -->
+<section class="panel" id="p3">
+  <div class="card">
+    <h2>第 3 关 · 扩展功能 (ASCII 字符串 + TCP Socket)</h2>
+    <p class="hint">按 1 Byte 一组加密 ASCII/UTF-8 字符串; 密文通过 TCP 发送给服务端解密, 明文不出现在网络上传送的数据里。</p>
+    <div class="grid2">
+      <label class="field"><span>密钥 (10-bit)</span><input id="l3-key" class="mono" maxlength="30" value="1010000010" autocomplete="off"></label>
+      <label class="field"><span>编码</span>
+        <select id="l3-encoding"><option value="utf-8">UTF-8</option><option value="ascii">ASCII</option><option value="gbk">GBK</option></select>
+      </label>
+    </div>
+    <label class="field">
+      <span>明文文本</span>
+      <textarea id="l3-text" rows="3" spellcheck="false">This is a test</textarea>
+    </label>
+    <div class="btn-row">
+      <button class="primary" id="l3-enc">加密 →</button>
+      <button id="l3-dec">← 解密</button>
+      <button class="ghost" id="l3-swap">用密文替换明文</button>
+    </div>
+    <label class="field"><span>密文 (hex, 每 2 个字符 = 1 字节)</span>
+      <textarea id="l3-hex" class="mono" rows="3" spellcheck="false"></textarea>
+    </label>
+    <p class="hint" id="l3-info"></p>
+
+    <hr class="sep">
+    <h3>TCP Socket 通信演示</h3>
+    <p class="hint">需先启动服务端: <code>python -m sdes.server</code> (默认 127.0.0.1:50007)。客户端本地加密, 只把密文发出去。</p>
+    <div class="grid3">
+      <label class="field"><span>主机</span><input id="l3-host" value="127.0.0.1"></label>
+      <label class="field"><span>端口</span><input id="l3-port" type="number" value="50007"></label>
+      <div class="field align-end"><button class="primary" id="l3-send">发送到 TCP 服务端…</button></div>
+    </div>
+    <div id="l3-log" class="log mono">尚未通信。</div>
+  </div>
+</section>
+
+<!-- ================= 第 4 关 ================= -->
+<section class="panel" id="p4">
+  <div class="card">
+    <h2>第 4 关 · 暴力破解</h2>
+    <p class="hint">已知明文-密文对, 穷举全部 2<sup>10</sup> = 1024 个密钥。单组明文-密文平均留下约 4 个候选密钥, 增加一组即可快速收敛。</p>
+    <label class="field"><span>明文-密文对 (每行一组, 格式: 明文,密文)</span>
+      <textarea id="l4-pairs" class="mono" rows="3" spellcheck="false">10010111,00111000</textarea>
+    </label>
+    <div class="grid3">
+      <label class="field"><span>线程数</span><input id="l4-workers" type="number" min="1" max="64" value="8"></label>
+      <label class="field"><span>每块大小</span><input id="l4-chunk" type="number" min="1" max="1024" value="64"></label>
+      <label class="field align-end check">
+        <span><input type="checkbox" id="l4-threaded" checked> 使用多线程</span>
+      </label>
+    </div>
+    <div class="btn-row">
+      <button class="primary" id="l4-start">开始破解</button>
+      <button id="l4-rand">随机生成一对 (已知真钥匙)</button>
+      <button class="ghost" id="l4-clear">清空</button>
+    </div>
+    <div class="progress-wrap"><div class="progress" id="l4-bar"></div></div>
+    <p class="hint" id="l4-status">就绪。</p>
+    <div class="result-grid">
+      <div class="result"><span>候选密钥数</span><b id="l4-count" class="mono">—</b></div>
+      <div class="result"><span>遍历密钥数</span><b id="l4-tried" class="mono">—</b></div>
+      <div class="result"><span>耗时</span><b id="l4-elapsed" class="mono">—</b></div>
+      <div class="result"><span>速率</span><b id="l4-rate" class="mono">—</b></div>
+    </div>
+    <div id="l4-keys" class="keylist mono"></div>
+  </div>
+</section>
+
+<!-- ================= 第 5 关 ================= -->
+<section class="panel" id="p5">
+  <div class="card">
+    <h2>第 5 关 · 封闭测试</h2>
+    <p class="hint">枚举全部 1024 个密钥 × 256 个明文, 统计 “不同密钥得到相同密文” 的情况。密钥空间 1024 &gt; 明文空间 256, 由鸽巢原理必然存在碰撞。</p>
+    <div class="grid2">
+      <label class="field"><span>样例明文 (0~255)</span><input id="l5-sample" type="number" min="0" max="255" value="0"></label>
+      <div class="field align-end"><button class="primary" id="l5-run">运行全空间分析 (1024×256)</button></div>
+    </div>
+    <div class="progress-wrap"><div class="progress" id="l5-bar"></div></div>
+    <p class="hint" id="l5-status">尚未运行 (全空间枚举约需 1~2 秒)。</p>
+    <div class="result-grid">
+      <div class="result"><span>密钥空间</span><b class="mono">2¹⁰ = 1024</b></div>
+      <div class="result"><span>明文空间</span><b class="mono">2⁸ = 256</b></div>
+      <div class="result"><span>最大碰撞桶</span><b id="l5-max" class="mono">—</b></div>
+      <div class="result"><span>平均候选密钥</span><b id="l5-avg" class="mono">—</b></div>
+    </div>
+    <div id="l5-body" class="hidden">
+      <h3>密文桶大小分布</h3>
+      <p class="hint">桶大小 = “能解出同一密文” 的密钥个数; 出现次数 = 全部明文中该大小的桶总数。</p>
+      <table class="data-table mono" id="l5-buckets"></table>
+      <h3>样例明文的碰撞情况</h3>
+      <p class="hint" id="l5-sample-info"></p>
+      <table class="data-table mono" id="l5-cases"></table>
+    </div>
+    <div class="btn-row">
+      <button id="l5-report">理论结论 (文字报告)</button>
+    </div>
+    <pre id="l5-report-text" class="report mono hidden"></pre>
+  </div>
+</section>
+
+<!-- ================= 算法规格 ================= -->
+<section class="panel" id="p6">
+  <div class="card">
+    <h2>算法规格</h2>
+    <div class="grid2">
+      <div>
+        <h3>加解密公式</h3>
+        <ul class="formula">
+          <li>加密: C = IP⁻¹( f<sub>K2</sub>( SW( f<sub>K1</sub>( IP(P) ) ) ) )</li>
+          <li>解密: P = IP⁻¹( f<sub>K1</sub>( SW( f<sub>K2</sub>( IP(C) ) ) ) )</li>
+          <li>密钥扩展: K<sub>i</sub> = P8( Shift<sup>i</sup>( P10(K) ) ), i = 1, 2</li>
+          <li>轮函数: f<sub>K</sub>(L, R) = ( L ⊕ F(R, K), R )</li>
+          <li>F(R, K) = SPBox( SBox1(左 4 bit) ‖ SBox2(右 4 bit) )</li>
+        </ul>
+      </div>
+      <div>
+        <h3>置换表 (1-indexed, 最左位为第 1 位)</h3>
+        <table class="data-table mono" id="spec-tables"></table>
+      </div>
+    </div>
+    <h3>S 盒 (行 = 第 1、4 位, 列 = 第 2、3 位)</h3>
+    <div class="grid2" id="spec-sbox"></div>
+    <p class="hint">逐格核对: 本平台的 SBox1 与标准 S-DES 的 S0 相同; SBox2 与标准 S1 不同 (作业已改动, 以此处为准)。</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <span>运行: <code>python -m sdes.webapp</code></span>
+  <span>命令行服务端: <code>python -m sdes.server</code></span>
+  <span>自测: <code>python -m tests.run_all</code></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
