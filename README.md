@@ -200,11 +200,3 @@ python -m tests.cross_test --other ..\队友\SDES\sdes --full
 | [tests](tests) | 自测代码、独立实现、外部互验和基准脚本 |
 
 主要源码：[核心算法](sdes/core.py) · [字节编解码](sdes/codec.py) · [穷举与碰撞](sdes/crack.py) · [扩展空间](sdes/longkey.py) · [网页后端](sdes/webapp.py) · [网页前端](sdes/web) · [桌面界面](sdes/gui.py) · [TCP 服务端](sdes/server.py) · [TCP 客户端](sdes/client.py)
-
-## 上传到 GitHub 时
-
-保留上述相对目录，README 中的链接会随仓库一起工作。代码、文档、CSV、截图和视频均有对应入口；`.gitignore` 排除了 Python 缓存、虚拟环境及破解运行时临时目录。
-
-**视频约 52 MiB，需要通过 Git 客户端上传。** GitHub 网页上传单文件上限为 25 MiB，普通 Git 对超过 50 MiB 的文件会提示，超过 100 MiB 才会阻止。本视频低于 100 MiB；限制说明见 [GitHub 官方文档](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github)。
-
-课程要求提交仓库链接，并在仓库中提供源代码、五关结果、用户指南及开发文档。原始提交方式和截止时间见 [作业要求](docs/作业要求.md)。
